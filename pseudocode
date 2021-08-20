@@ -1,0 +1,72 @@
+global variables:
+conv bias
+conv kernel
+fc bias 
+fc kernel
+input (16x16)
+
+CHANGE MODEL WEIGHTS MANUALLLY INSTEAD OF PERFORMING SHIFTS!!!!
+local variables:
+output spikes (24)
+conv spikes (6x14x14)
+input spikes (1x16x16)
+
+input_current (16x16) (constants)
+input_membrane (16x16)
+conv_membrane (6x16x16 flattened) (current depend on prev layer)
+fc_membrane (24) (current depend on prev layer)
+
+simulate:
+    for timestep in timesteps:
+        call forward
+        get 24 binary output spikes
+        add to 64x24 spike array (locally define as 1 bit)
+        prediction = bin with most output spikes (out of 64 timesteps)
+forward:
+    # integrate input current at current time step into membrane
+    input_membranes += input current
+
+    #linear activation
+    for each input spike
+        input spike = 1 if mem >= thresh, otherwise 0
+    
+    #reset membranes by subtraction
+    for each input spike
+        if input spike is >0
+            corresponding input membrane -= thresh
+        if input spike is <0
+            corresponding input membrane += thresh
+    
+    # integrate current at current time step into membrane
+    do convolution with input spikes as input, using conv bias & kernel (optimize maybe since the multiplication is 32bit * (0,1))
+    conv_membrane += corresponding above result
+
+    #linear activation
+    for each conv spike
+        conv spike = 1 if conv mem >= thresh, otherwise 0
+
+    #reset membranes by subtraction
+    for each conv spike
+        if conv spike is >0
+            corresponding conv membrane -= thresh
+        if conv spike is <0
+            corresponding conv membrane += thresh
+    
+    # integrate current at current time step into membrane
+    do fc with conv spikes as input, using fc bias & kernel (optimize maybe since the multiplication is 32bit * (0,1))
+    fc_membrane += corresponding above result
+
+
+    #linear activation
+    for each output spike
+        output spike = 1 if fc mem >= thresh, otherwise 0
+
+    #reset membranes by subtraction
+    for each output spike
+        if output spike is >0
+            corresponding fc membrane -= thresh
+        if output spike is <0
+            corresponding fc membrane += thresh
+
+
+    return output spikes

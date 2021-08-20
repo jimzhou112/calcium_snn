@@ -1,10 +1,10 @@
 /*-------------------------------------------------------
 
-Filename: cnn.h
+Filename: snn.h
 
 Takes in calcium image (./Calcium/input.txt) and outputs prediction label.
 
-Model based on a converted SNN with the following original PyTorch model:
+Model trained on the following CNN Pytorch model, then converted to an SNN using based on a converted SNN using rate-based encoding:
 
 *******************************************
 class Simplenet(nn.Module):
@@ -29,9 +29,11 @@ class Simplenet(nn.Module):
 #define IN_CHANNELS 1
 #define KERNEL_SIZE 3
 #define NUM_KERNELS 6
-#define NUM_LABELS 23
-#define OUT_SIZE IN_SIZE - KERNEL_SIZE + 1
+#define NUM_LABELS 24
+#define OUT_SIZE (IN_SIZE - KERNEL_SIZE + 1)
 #define DATASET "Calcium"
+#define MODEL "CNN"
+#define FC_SIZE (OUT_SIZE * OUT_SIZE * NUM_KERNELS)
 
 #define max(x, y) (((x) >= (y)) ? (x) : (y))
 

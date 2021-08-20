@@ -1,10 +1,10 @@
 /*-------------------------------------------------------
 
-Filename: cnn.c
+Filename: snn.c
 
 Takes in calcium image (./Calcium/input.txt) and outputs prediction label.
 
-Model based on following PyTorch model:
+Model trained on the following CNN Pytorch model, then converted to an SNN using based on a converted SNN using rate-based encoding:
 
 *******************************************
 class Simplenet(nn.Module):
@@ -12,12 +12,10 @@ class Simplenet(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv = nn.Conv2d(1, 6, 3, 1)
-        self.bn = nn.BatchNorm2d(6)
-        self.relu = nn.ReLU(inplace=False)
         self.fc1 = nn.Linear(150, 23)
         
     def forward(self, x):
-        x = self.relu(self.bn(self.conv(x)))
+        x = self.conv(x)
         x = x.view(x.size(0), -1)
         x = self.fc1(x)
         return x
@@ -29,7 +27,7 @@ class Simplenet(nn.Module):
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "cnn.h"
+#include "snn.h"
 #include "normalize_input.h"
 
 // Performs Convolution with 6x5x5 output

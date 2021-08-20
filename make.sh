@@ -1,1 +1,1 @@
-gcc -o cnn -g cnn.c normalize_input.c cnn_test.c -lm -I
+gcc -o snn -g snn.c normalize_input.c snn_test.c -lm -I
