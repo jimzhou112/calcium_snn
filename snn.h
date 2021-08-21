@@ -30,6 +30,8 @@ class Simplenet(nn.Module):
 #define KERNEL_SIZE 3
 #define NUM_KERNELS 6
 #define NUM_LABELS 24
+#define TIMESTEPS 4
+#define THRESHOLD 1
 #define OUT_SIZE (IN_SIZE - KERNEL_SIZE + 1)
 #define DATASET "Calcium"
 #define MODEL "CNN"
@@ -37,6 +39,6 @@ class Simplenet(nn.Module):
 
 #define max(x, y) (((x) >= (y)) ? (x) : (y))
 
-void cnn(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const float conv_weight[NUM_KERNELS][IN_CHANNELS][KERNEL_SIZE][KERNEL_SIZE], float conv_bias[NUM_KERNELS], float conv_output[NUM_KERNELS][OUT_SIZE][OUT_SIZE], float relu_output[NUM_KERNELS][OUT_SIZE][OUT_SIZE], float fc_input[150], const float fc_weight[NUM_LABELS][150], const float fc_bias[NUM_LABELS], float output[NUM_LABELS]);
+void simulate(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const float conv_weight[KERNEL_SIZE][KERNEL_SIZE][IN_CHANNELS][NUM_KERNELS], float conv_bias[NUM_KERNELS], const float fc_weight[FC_SIZE][NUM_LABELS], const float fc_bias[NUM_LABELS], float output[NUM_LABELS]);
 
 #endif

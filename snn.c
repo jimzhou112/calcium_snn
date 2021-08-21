@@ -31,10 +31,7 @@ class Simplenet(nn.Module):
 #include "normalize_input.h"
 
 // Performs Convolution with 6x5x5 output
-void convolution(
-    const float input[IN_CHANNELS][IN_SIZE][IN_SIZE],
-    const float weight[NUM_KERNELS][IN_CHANNELS][KERNEL_SIZE][KERNEL_SIZE], const float bias[NUM_KERNELS],
-    float output[NUM_KERNELS][OUT_SIZE][OUT_SIZE])
+void convolution(const float input[IN_CHANNELS][IN_SIZE][IN_SIZE], const float weight[KERNEL_SIZE][KERNEL_SIZE][IN_CHANNELS][NUM_KERNELS], const float bias[NUM_KERNELS], float output[NUM_KERNELS][OUT_SIZE][OUT_SIZE])
 {
 
     // Bias
@@ -46,7 +43,22 @@ void convolution(
                 output[i][h][w] = bias[i];
         }
     }
-
+    // for (int i = 0; i < NUM_KERNELS; ++i)
+    // {
+    //     for (int h = 0; h < OUT_SIZE; ++h)
+    //     {
+    //         for (int w = 0; w < OUT_SIZE; ++w)
+    //             printf("%f\n", output[i][h][w]);
+    //     }
+    // }
+    // for (int i = 0; i < IN_CHANNELS; ++i)
+    // {
+    //     for (int h = 0; h < IN_SIZE; ++h)
+    //     {
+    //         for (int w = 0; w < IN_SIZE; ++w)
+    //             printf("%f\n", input[i][h][w]);
+    //     }
+    // }
     // Convolution
     for (int i = 0; i < OUT_SIZE; ++i)
     {
@@ -59,95 +71,322 @@ void convolution(
                     for (int p = 0; p < KERNEL_SIZE; ++p)
                     {
                         for (int q = 0; q < KERNEL_SIZE; ++q)
-                            output[h][i][j] += weight[h][w][p][q] * input[w][i + p][j + q];
+                            output[h][i][j] += weight[p][q][w][h] * input[w][i + p][j + q];
                     }
                 }
             }
         }
     }
-}
-
-// Applies element-wise rectified linear unit function
-void relu(const float input[NUM_KERNELS][OUT_SIZE][OUT_SIZE], float output[NUM_KERNELS][OUT_SIZE][OUT_SIZE])
-{
-    for (int i = 0; i < NUM_KERNELS; i++)
-    {
-        for (int j = 0; j < OUT_SIZE; j++)
-        {
-            for (int k = 0; k < OUT_SIZE; k++)
-            {
-                output[i][j][k] = max(input[i][j][k], 0);
-            }
-        }
-    }
+    // for (int i = 0; i < NUM_KERNELS; ++i)
+    // {
+    //     for (int h = 0; h < OUT_SIZE; ++h)
+    //     {
+    //         for (int w = 0; w < OUT_SIZE; ++w)
+    //         {
+    //             if (output[i][h][w] < 0)
+    //             {
+    //                 output[i][h][w] = 0;
+    //             }
+    //         }
+    //     }
+    // }
+    // for (int i = 0; i < IN_CHANNELS; ++i)
+    // {
+    //     for (int h = 0; h < IN_SIZE; ++h)
+    //     {
+    //         for (int w = 0; w < IN_SIZE; ++w)
+    //             printf("%f\n", input[i][h][w]);
+    //     }
+    // }
+    // for (int i = 0; i < NUM_KERNELS; ++i)
+    // {
+    //     for (int h = 0; h < OUT_SIZE; ++h)
+    //     {
+    //         for (int w = 0; w < OUT_SIZE; ++w)
+    //             printf("%f\n", output[i][h][w]);
+    //     }
+    // }
 }
 
 // Applies a linear transformation of the form output = xA^T + b
-void fc(const float input[150], const float weight[NUM_LABELS][150], const float bias[NUM_LABELS], float output[NUM_LABELS])
+void fc(const float input[NUM_KERNELS][OUT_SIZE][OUT_SIZE], const float weight[FC_SIZE][NUM_LABELS], const float bias[NUM_LABELS], float output[NUM_LABELS])
 {
     for (int i = 0; i < NUM_LABELS; i++)
     {
         output[i] = bias[i];
+        // printf("%f\n", output[i]);
     }
     for (int i = 0; i < NUM_LABELS; i++)
     {
-        for (int j = 0; j < 150; j++)
+        for (int j = 0; j < FC_SIZE; j++)
         {
-            output[i] += weight[i][j] * input[j];
+            output[i] += weight[j][i] * input[j / OUT_SIZE / OUT_SIZE][(j % (OUT_SIZE * OUT_SIZE)) / OUT_SIZE][(j % (OUT_SIZE * OUT_SIZE)) % OUT_SIZE];
         }
     }
+    // for (int i = 0; i < NUM_LABELS; i++)
+    // {
+    //     printf("%f\n", output[i]);
+    // }
+    // for (int i = 0; i < NUM_LABELS; i++)
+    // {
+    //     if (output[i] < 0)
+    //     {
+    //         output[i] = 0;
+    //     }
+    // }
 }
 
-void cnn(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const float conv_weight[NUM_KERNELS][IN_CHANNELS][KERNEL_SIZE][KERNEL_SIZE], float conv_bias[NUM_KERNELS], float conv_output[NUM_KERNELS][OUT_SIZE][OUT_SIZE], float relu_output[NUM_KERNELS][OUT_SIZE][OUT_SIZE], float fc_input[150], const float fc_weight[NUM_LABELS][150], const float fc_bias[NUM_LABELS], float output[NUM_LABELS])
+void forward(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const float conv_weight[KERNEL_SIZE][KERNEL_SIZE][IN_CHANNELS][NUM_KERNELS], float conv_bias[NUM_KERNELS], const float fc_weight[FC_SIZE][NUM_LABELS], const float fc_bias[NUM_LABELS], float curr_spikes[NUM_LABELS], float input_membrane[IN_CHANNELS][IN_SIZE][IN_SIZE], float conv_membrane[NUM_KERNELS][OUT_SIZE][OUT_SIZE], float fc_membrane[NUM_LABELS])
 {
     int i, j, k;
-    // Performs Convolution with 6x5x5 output
-    convolution(normalized_input, conv_weight, conv_bias, conv_output);
+    // Spike trains
+    float input_spikes[IN_CHANNELS][IN_SIZE][IN_SIZE];
+    float conv_spikes[NUM_KERNELS][OUT_SIZE][OUT_SIZE];
 
-    // for (int i = 0; i < NUM_KERNELS; i++)
-    // {
-    //     for (int j = 0; j < OUT_SIZE; j++)
-    //     {
-    //         for (int k = 0; k < OUT_SIZE; k++)
-    //         {
-    //             printf("%f\n", conv_output[i][j][k]);
-    //         }
-    //     }
-    // }
-    // exit(1);
+    // Input current of neurons
+    float conv_current[NUM_KERNELS][OUT_SIZE][OUT_SIZE];
+    float fc_current[NUM_LABELS];
 
-    // Applies element-wise rectified linear unit function
-    relu(conv_output, relu_output);
-
-    // for (int i = 0; i < NUM_KERNELS; i++)
-    // {
-    //     for (int j = 0; j < OUT_SIZE; j++)
-    //     {
-    //         for (int k = 0; k < OUT_SIZE; k++)
-    //         {
-    //             printf("%f\n", relu_output[i][j][k]);
-    //         }
-    //     }
-    // }
-    // exit(1);
-
-    // Reshape to 1D array
+    // Initialize input current to 0
     for (i = 0; i < NUM_KERNELS; i++)
     {
         for (j = 0; j < OUT_SIZE; j++)
         {
             for (k = 0; k < OUT_SIZE; k++)
             {
-                fc_input[i * 25 + j * 5 + k] = relu_output[i][j][k];
+                conv_current[i][j][k] = 0;
             }
         }
     }
 
-    // Applies a linear transformation of the form output = xA^T + b
-    fc(fc_input, fc_weight, fc_bias, output);
+    for (i = 0; i < NUM_KERNELS; i++)
+    {
+        fc_current[i] = 0;
+    }
 
-    // for (i = 0; i < 23; i++)
+    // Integrate input current at current time step into membrane
+    for (i = 0; i < IN_SIZE; i++)
+    {
+
+        for (j = 0; j < IN_SIZE; j++)
+        {
+
+            input_membrane[0][i][j] += normalized_input[0][i][j];
+            // printf("%f\n", input_membrane[0][i][j]);
+        }
+    }
+
+    // Linear activation
+    for (i = 0; i < IN_SIZE; i++)
+    {
+        for (j = 0; j < IN_SIZE; j++)
+        {
+            if (input_membrane[0][i][j] >= THRESHOLD)
+            {
+                input_spikes[0][i][j] = 1;
+            }
+            else
+            {
+                input_spikes[0][i][j] = 0;
+            }
+        }
+    }
+
+    // Reset membranes by subtraction
+    for (i = 0; i < IN_SIZE; i++)
+    {
+        for (j = 0; j < IN_SIZE; j++)
+        {
+            if (input_spikes[0][i][j] > 0)
+            {
+                input_membrane[0][i][j] -= THRESHOLD;
+            }
+            if (input_spikes[0][i][j] < 0)
+            {
+                input_membrane[0][i][j] += THRESHOLD;
+            }
+        }
+    }
+
+    // Integrate current at current time step into membrane
+    convolution(input_spikes, conv_weight, conv_bias, conv_current);
+
+    for (i = 0; i < NUM_KERNELS; i++)
+    {
+        for (j = 0; j < OUT_SIZE; j++)
+        {
+            for (k = 0; k < OUT_SIZE; k++)
+            {
+                conv_membrane[i][j][k] += conv_current[i][j][k];
+            }
+        }
+    }
+    // for (int i = 0; i < NUM_KERNELS; ++i)
     // {
-    //     printf("%f\n", output[i]);
+    //     for (int h = 0; h < OUT_SIZE; ++h)
+    //     {
+    //         for (int w = 0; w < OUT_SIZE; ++w)
+    //             printf("%f\n", conv_membrane[i][h][w]);
+    //     }
     // }
+
+    // Linear activation
+    for (i = 0; i < NUM_KERNELS; i++)
+    {
+        for (j = 0; j < OUT_SIZE; j++)
+        {
+            for (k = 0; k < OUT_SIZE; k++)
+            {
+                if (conv_membrane[i][j][k] >= THRESHOLD)
+                {
+                    conv_spikes[i][j][k] = 1;
+                }
+                else
+                {
+                    conv_spikes[i][j][k] = 0;
+                }
+            }
+        }
+    }
+    // for (int i = 0; i < NUM_KERNELS; ++i)
+    // {
+    //     for (int h = 0; h < OUT_SIZE; ++h)
+    //     {
+    //         for (int w = 0; w < OUT_SIZE; ++w)
+    //             printf("%f\n", conv_spikes[i][h][w]);
+    //     }
+    // }
+
+    // Reset membranes by subtraction
+    for (i = 0; i < NUM_KERNELS; i++)
+    {
+        for (j = 0; j < OUT_SIZE; j++)
+        {
+            for (k = 0; k < OUT_SIZE; k++)
+            {
+                if (conv_spikes[i][j][k] > 0)
+                {
+                    conv_membrane[i][j][k] -= THRESHOLD;
+                }
+                if (conv_spikes[i][j][k] < 0)
+                {
+                    conv_membrane[i][j][k] += THRESHOLD;
+                }
+            }
+        }
+    }
+
+    // Integrate current at current time step into membrane
+    fc(conv_spikes, fc_weight, fc_bias, fc_current);
+
+    for (i = 0; i < NUM_LABELS; i++)
+    {
+        fc_membrane[i] += fc_current[i];
+        // printf("%f\n", fc_membrane[i]);
+    }
+
+    // Linear activation
+    for (i = 0; i < NUM_LABELS; i++)
+    {
+        if (fc_membrane[i] >= THRESHOLD)
+        {
+            curr_spikes[i] = 1;
+        }
+        else
+        {
+            curr_spikes[i] = 0;
+        }
+        // printf("%f\n", curr_spikes[i]);
+    }
+
+    // Reset membranes by subtraction
+    for (i = 0; i < NUM_LABELS; i++)
+    {
+        if (curr_spikes[i] > 0)
+        {
+            fc_membrane[i] -= THRESHOLD;
+        }
+        if (curr_spikes[i] < 0)
+        {
+            fc_membrane[i] += THRESHOLD;
+        }
+    }
+}
+
+void simulate(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const float conv_weight[KERNEL_SIZE][KERNEL_SIZE][IN_CHANNELS][NUM_KERNELS], float conv_bias[NUM_KERNELS], const float fc_weight[FC_SIZE][NUM_LABELS], const float fc_bias[NUM_LABELS], float output[NUM_LABELS])
+{
+    int i, j, k;
+    // Spike trains
+    float output_spikes[TIMESTEPS][NUM_LABELS];
+
+    // Membrane potential of neurons
+    float input_membrane[IN_CHANNELS][IN_SIZE][IN_SIZE];
+    float conv_membrane[NUM_KERNELS][OUT_SIZE][OUT_SIZE];
+    float fc_membrane[NUM_LABELS];
+
+    // Initialize membrane potentials to 0
+    for (i = 0; i < IN_CHANNELS; i++)
+    {
+        for (j = 0; j < IN_SIZE; j++)
+        {
+            for (k = 0; k < IN_SIZE; k++)
+            {
+                input_membrane[i][j][k] = 0;
+            }
+        }
+    }
+
+    for (i = 0; i < NUM_KERNELS; i++)
+    {
+        for (j = 0; j < OUT_SIZE; j++)
+        {
+            for (k = 0; k < OUT_SIZE; k++)
+            {
+                conv_membrane[i][j][k] = 0;
+            }
+        }
+    }
+
+    for (i = 0; i < NUM_LABELS; i++)
+    {
+        fc_membrane[i] = 0;
+    }
+
+    int timestep;
+    int bin;
+
+    for (timestep = 0; timestep < TIMESTEPS; timestep++)
+    {
+        float curr_spikes[NUM_LABELS];
+        forward(normalized_input, conv_weight, conv_bias, fc_weight, fc_bias, curr_spikes, input_membrane, conv_membrane, fc_membrane);
+        for (bin = 0; bin < NUM_LABELS; bin++)
+        {
+            // printf("%f\n", curr_spikes[bin]);
+            output_spikes[timestep][bin] = curr_spikes[bin];
+        }
+    }
+
+    for (timestep = 0; timestep < TIMESTEPS; timestep++)
+    {
+        printf("TIMESTEP %d -- ", timestep);
+        for (bin = 0; bin < NUM_LABELS; bin++)
+        {
+            printf("%.2f, ", output_spikes[timestep][bin]);
+        }
+        printf("\n");
+    }
+
+    for (bin = 0; bin < NUM_LABELS; bin++)
+    {
+        // Sum the total number of spikes for each bin over the number of timesteps
+        float sum = 0;
+
+        for (timestep = 0; timestep < TIMESTEPS; timestep++)
+        {
+            // printf("%f, ", sum);
+            // printf("%f\n", output_spikes[1][bin]);
+            sum += output_spikes[timestep][bin];
+        }
+        output[bin] = sum;
+    }
 }

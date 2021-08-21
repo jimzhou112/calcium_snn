@@ -31,7 +31,7 @@ int main()
     static float fc_bias[NUM_LABELS];
 
     // Output
-    static float output;
+    static float output[NUM_LABELS];
 
     // Load inputs
     sprintf(file_name, "./%s/input.txt", DATASET);
@@ -174,21 +174,21 @@ int main()
     //     }
     // }
 
-    // // Start timer
-    // gettimeofday(&t1, NULL);
+    // Start timer
+    gettimeofday(&t1, NULL);
 
-    // cnn(normalized_input, conv_weight, conv_bias, conv_output, relu_output, fc_input, fc_weight, fc_bias, output);
+    simulate(normalized_input, conv_weight, conv_bias, fc_weight, fc_bias, output);
 
-    // // for (i = 0; i < 23; i++)
-    // // {
-    // //     printf("%f\n", output[i]);
-    // // }
+    for (i = 0; i < 24; i++)
+    {
+        printf("%f\n", output[i]);
+    }
 
-    // // Stop timer
-    // gettimeofday(&t2, NULL);
-    // timersub(&t1, &t2, &tr);
-    // printf("Inference finished. \n%.5f sec elapsed.\n",
-    //        -tr.tv_sec - (double)tr.tv_usec / 1000000.0);
+    // Stop timer
+    gettimeofday(&t2, NULL);
+    timersub(&t1, &t2, &tr);
+    printf("Inference finished. \n%.5f sec elapsed.\n",
+           -tr.tv_sec - (double)tr.tv_usec / 1000000.0);
 
     // // Outputs the prediction label
     // int index = 0;
