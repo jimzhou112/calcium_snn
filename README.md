@@ -27,4 +27,6 @@ Baseline model (located in ./CNN attains 37.20% Hit 1 and 76.09% Hit 3 accuracy.
 
 To do for optimizations: spike trains can be stored more efficiently, they are 1-bit
 Optimize 1-bit input conv/fc layers
+
+Done: 
 Since threshold is 1, most uses of threshold that involve multiplication can be eliminated

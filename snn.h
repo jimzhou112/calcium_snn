@@ -30,7 +30,7 @@ class Simplenet(nn.Module):
 #define KERNEL_SIZE 3
 #define NUM_KERNELS 6
 #define NUM_LABELS 24
-#define TIMESTEPS 4
+#define TIMESTEPS 32
 #define THRESHOLD 1
 #define OUT_SIZE (IN_SIZE - KERNEL_SIZE + 1)
 #define DATASET "Calcium"
