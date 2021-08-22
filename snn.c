@@ -153,29 +153,16 @@ void fc(const float input[OUT_SIZE][OUT_SIZE][NUM_KERNELS], const float weight[F
     // }
 }
 
-void forward(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const float conv_weight[KERNEL_SIZE][KERNEL_SIZE][IN_CHANNELS][NUM_KERNELS], float conv_bias[NUM_KERNELS], const float fc_weight[FC_SIZE][NUM_LABELS], const float fc_bias[NUM_LABELS], float curr_spikes[NUM_LABELS], float input_membrane[IN_CHANNELS][IN_SIZE][IN_SIZE], float conv_membrane[OUT_SIZE][OUT_SIZE][NUM_KERNELS], float fc_membrane[NUM_LABELS])
+void forward(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const float conv_weight[KERNEL_SIZE][KERNEL_SIZE][IN_CHANNELS][NUM_KERNELS], float conv_bias[NUM_KERNELS], const float fc_weight[FC_SIZE][NUM_LABELS], const float fc_bias[NUM_LABELS], float curr_spikes[NUM_LABELS], float conv_membrane[OUT_SIZE][OUT_SIZE][NUM_KERNELS], float fc_membrane[NUM_LABELS], const float conv_current[OUT_SIZE][OUT_SIZE][NUM_KERNELS])
 {
     int i, j, k;
     // Spike trains
-    float input_spikes[IN_CHANNELS][IN_SIZE][IN_SIZE];
     float conv_spikes[OUT_SIZE][OUT_SIZE][NUM_KERNELS];
 
     // Input current of neurons
-    float conv_current[OUT_SIZE][OUT_SIZE][NUM_KERNELS];
     float fc_current[NUM_LABELS];
 
     // Initialize input current to 0
-    for (i = 0; i < OUT_SIZE; i++)
-    {
-        for (j = 0; j < OUT_SIZE; j++)
-        {
-            for (k = 0; k < NUM_KERNELS; k++)
-            {
-                conv_current[i][j][k] = 0;
-            }
-        }
-    }
-
     for (i = 0; i < NUM_KERNELS; i++)
     {
         fc_current[i] = 0;
@@ -224,9 +211,6 @@ void forward(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const 
     //         }
     //     }
     // }
-
-    // Integrate current at current time step into membrane
-    convolution(normalized_input, conv_weight, conv_bias, conv_current);
 
     for (i = 0; i < OUT_SIZE; i++)
     {
@@ -375,13 +359,31 @@ void simulate(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const
         fc_membrane[i] = 0;
     }
 
+    // Input current of neurons
+    float conv_current[OUT_SIZE][OUT_SIZE][NUM_KERNELS];
+
+    // Initialize input current to 0
+    for (i = 0; i < OUT_SIZE; i++)
+    {
+        for (j = 0; j < OUT_SIZE; j++)
+        {
+            for (k = 0; k < NUM_KERNELS; k++)
+            {
+                conv_current[i][j][k] = 0;
+            }
+        }
+    }
+
+    // Integrate current at current time step into membrane
+    convolution(normalized_input, conv_weight, conv_bias, conv_current);
+
     int timestep;
     int bin;
 
     for (timestep = 0; timestep < TIMESTEPS; timestep++)
     {
         float curr_spikes[NUM_LABELS];
-        forward(normalized_input, conv_weight, conv_bias, fc_weight, fc_bias, curr_spikes, input_membrane, conv_membrane, fc_membrane);
+        forward(normalized_input, conv_weight, conv_bias, fc_weight, fc_bias, curr_spikes, conv_membrane, fc_membrane, conv_current);
         for (bin = 0; bin < NUM_LABELS; bin++)
         {
             // printf("%f\n", curr_spikes[bin]);
