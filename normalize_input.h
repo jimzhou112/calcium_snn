@@ -1,6 +1,6 @@
 /*-------------------------------------------------------
 
-Filename: normalize_input.c
+Filename: normalize_input.h
 
 Transforms PIL image input to normalized input for SNN. 
 
