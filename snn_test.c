@@ -179,10 +179,10 @@ int main()
 
     simulate(normalized_input, conv_weight, conv_bias, fc_weight, fc_bias, output);
 
-    for (i = 0; i < 24; i++)
-    {
-        printf("%f\n", output[i]);
-    }
+    // for (i = 0; i < 24; i++)
+    // {
+    //     printf("%f\n", output[i]);
+    // }
 
     // Stop timer
     gettimeofday(&t2, NULL);
@@ -190,6 +190,50 @@ int main()
     printf("Inference finished. \n%.5f sec elapsed.\n",
            -tr.tv_sec - (double)tr.tv_usec / 1000000.0);
 
+    // Load ground truth spikes
+    static float correct_spikes[NUM_LABELS];
+
+    sprintf(file_name, "./%s/spikes.txt", DATASET);
+    if (!(ifp = fopen(file_name, "r")))
+    {
+        printf("File spikes.txt cannot be opened for read.\n");
+        return -1;
+    }
+    for (i = 0; i < NUM_LABELS; i++)
+    {
+        if (fscanf(ifp, "%f", &correct_spikes[i]) != 1)
+        {
+            printf("File spikes.txt is not of correct length or format\n");
+            return -1;
+        }
+    }
+
+    // Verify correctness of program using ground truth spikes
+    int num_correct = 0;
+    for (i = 0; i < NUM_LABELS; i++)
+    {
+        if (correct_spikes[i] != output[i])
+        {
+            printf("Incorrect spikes at bin %d: Correct number of spikes is %.0f but program reports %.0f\n", i, correct_spikes[i], output[i]);
+        }
+        else
+        {
+            num_correct += 1;
+        }
+    }
+
+    if (num_correct == NUM_LABELS)
+    {
+        printf(" *************** \n");
+        printf("   Test Passed!  \n");
+        printf(" *************** \n");
+    }
+    else
+    {
+        printf(" ****************** \n");
+        printf("  Test NOT Passed!  \n");
+        printf(" ****************** \n");
+    }
     // // Outputs the prediction label
     // int index = 0;
     // float max = output[index];

@@ -281,12 +281,26 @@ void forward(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const 
 
     fc(conv_spikes, fc_weight, fc_bias, fc_current);
 
+    float max = 0;
+    // Normalize current
+    for (i = 0; i < NUM_LABELS; i++)
+    {
+        if (fc_current[i] > max)
+        {
+            max = fc_current[i];
+        }
+    }
+    for (i = 0; i < NUM_LABELS; i++)
+    {
+        fc_current[i] /= max;
+    }
+
     for (i = 0; i < NUM_LABELS; i++)
     {
         fc_membrane[i] += fc_current[i];
         // printf("%f\n", fc_current[i]);
     }
-
+    // exit(1);
     // Linear activation
     for (i = 0; i < NUM_LABELS; i++)
     {
@@ -377,6 +391,31 @@ void simulate(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const
     // Integrate current at current time step into membrane
     convolution(normalized_input, conv_weight, conv_bias, conv_current);
 
+    float max = 0;
+    // Normalize current
+    for (i = 0; i < OUT_SIZE; i++)
+    {
+        for (j = 0; j < OUT_SIZE; j++)
+        {
+            for (k = 0; k < NUM_KERNELS; k++)
+            {
+                if (conv_current[i][j][k] > max)
+                {
+                    max = conv_current[i][j][k];
+                }
+            }
+        }
+    }
+    for (i = 0; i < OUT_SIZE; i++)
+    {
+        for (j = 0; j < OUT_SIZE; j++)
+        {
+            for (k = 0; k < NUM_KERNELS; k++)
+            {
+                conv_current[i][j][k] /= max;
+            }
+        }
+    }
     int timestep;
     int bin;
 
@@ -391,15 +430,15 @@ void simulate(const float normalized_input[IN_CHANNELS][IN_SIZE][IN_SIZE], const
         }
     }
 
-    for (timestep = 0; timestep < TIMESTEPS; timestep++)
-    {
-        printf("TIMESTEP %d -- ", timestep);
-        for (bin = 0; bin < NUM_LABELS; bin++)
-        {
-            printf("%.2f, ", output_spikes[timestep][bin]);
-        }
-        printf("\n");
-    }
+    // for (timestep = 0; timestep < TIMESTEPS; timestep++)
+    // {
+    //     printf("TIMESTEP %d -- ", timestep);
+    //     for (bin = 0; bin < NUM_LABELS; bin++)
+    //     {
+    //         printf("%.2f, ", output_spikes[timestep][bin]);
+    //     }
+    //     printf("\n");
+    // }
 
     for (bin = 0; bin < NUM_LABELS; bin++)
     {
